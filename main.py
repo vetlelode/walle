@@ -4,6 +4,7 @@ import easygopigo3 as easy
 import atexit
 import os
 import glob
+from PIL import Image
 
 def cleanup():
   files = glob.glob('./images/*')
@@ -29,8 +30,10 @@ def main():
   for x in range(0, 10):
     gpg.open_eyes()
     output = takePhoto()
-    print(output.shape)
-    #name = 'images/{}.jpg'.format(x)
+    name = 'images/{}.jpg'.format(x)
+    im = Image.fromarray(output)
+    im.convert('1')
+    im.save(name)
     #img.save(name)
 
 
