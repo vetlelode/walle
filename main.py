@@ -32,8 +32,10 @@ def main():
     output = takePhoto()
     name = 'images/{}.jpg'.format(x)
     im = Image.fromarray(output)
-    im.convert('1')
-    im.save(name)
+    thresh = 200
+    fn = lambda x : 255 if x > thresh else 0
+    r = im.convert('L').point(fn, mode='1')
+    r.save(name)
     #img.save(name)
 
 
