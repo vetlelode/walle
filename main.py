@@ -32,14 +32,12 @@ def main():
   atexit.register(gpg.stop)
   atexit.register(gpg.close_eyes)
 
-  for x in range(0, 10):
+  for x in range(0, 1):
     gpg.open_eyes()
     output = takePhoto()
-
-
     name = 'images/{}.jpg'.format(x)
     im = Image.fromarray(output)
-    thresh = x * 10 #This is probably the most accurate at around 80 to 100
+    thresh = 80 #This is probably the most accurate at around 80 to 100
     fn = lambda x : 255 if x > thresh else 0
     r = im.convert('L').point(fn, mode='1')
     r.save(name)
