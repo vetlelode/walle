@@ -9,11 +9,11 @@ from matplotlib import cm
 
 
 # Constructing test image
-image = np.zeros((640, 480))
-image = io.imread("./sample/test.jpg")
-#idx = np.arange(25, 175)
-#image[idx[::-1], idx] = 255
-#image[idx, idx] = 255
+image = np.zeros((200, 200))
+#image = io.imread("./sample/test.jpg")
+idx = np.arange(25, 175)
+image[idx[::-1], idx] = 255
+image[idx, idx] = 255
 
 # Classic straight-line Hough transform
 # Set a precision of 0.5 degree.
