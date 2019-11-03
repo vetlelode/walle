@@ -1,50 +1,36 @@
-import numpy as np
-
-from skimage.transform import hough_line, hough_line_peaks
-from skimage.feature import canny
-from skimage import data, io
-
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import cm
+from skimage import data, io
+from skimage.feature import canny
+from skimage.transform import probabilistic_hough_line
 
-# Constructing test image
-image = np.zeros((480, 640))
-image = io.imread("./sample/test.jpg")
+image = np.zeros((300, 300))
+image = io.imread("./sample/test.jpg", as_gray=True)
+im2 = canny(image, sigma=1)
+hugh = probabilistic_hough_line(im2)
 
 
-def houghTrans(image):
-    # Classic straight-line Hough transform
-    # Set a precision of 0.5 degree.
-    #tested_angles = np.linspace(-np.pi / 2, np.pi / 2, 360)
-    h, theta, d = hough_line(image)
+fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(8, 3),
+                                    sharex=True, sharey=True)
+ax1.imshow(image, cmap=plt.cm.gray)
+ax1.axis('off')
+ax1.set_title('noisy image', fontsize=20)
 
-    # Generating figure 1
-    fig, axes = plt.subplots(1, 3, figsize=(15, 6))
-    ax = axes.ravel()
+ax2.imshow(im2, cmap=plt.cm.gray)
+ax2.axis('off')
+ax2.set_title('Canny filter, $\sigma=1$', fontsize=20)
 
-    ax[0].imshow(image, cmap=cm.gray)
-    ax[0].set_title('Input image')
-    ax[0].set_axis_off()
+ax3.imshow(im2 * 0)
+print(len(hugh))
+for line in hugh:
+    p0, p1 = line
+    ax3.plot((p0[0], p1[0]), (p0[1], p1[1]))
+ax3.set_xlim((0, image.shape[1]))
+ax3.set_ylim((image.shape[0], 0))
+ax3.axis("off")
+ax3.set_title('Probabilistic Hough')
 
-    ax[1].imshow(np.log(1 + h),
-                 extent=[np.rad2deg(theta[-1]), np.rad2deg(theta[0]), d[-1], d[0]],
-                 cmap=cm.gray, aspect=1/1.5)
-    ax[1].set_title('Hough transform')
-    ax[1].set_xlabel('Angles (degrees)')
-    ax[1].set_ylabel('Distance (pixels)')
-    ax[1].axis('image')
 
-    ax[2].imshow(image, cmap=cm.gray)
-    origin = np.array((0, image.shape[1]))
-    for _, angle, dist in zip(*hough_line_peaks(h, theta, d)):
-        y0, y1 = (dist - origin * np.cos(angle)) / np.sin(angle)
-        ax[2].plot(origin, (y0, y1), '-r')
-    ax[2].set_xlim(origin)
-    ax[2].set_ylim((image.shape[0], 0))
-    ax[2].set_axis_off()
-    ax[2].set_title('Detected lines')
-
-    plt.tight_layout()
-    plt.show()
-
-houghTrans(image)
+fig.tight_layout()
+plt.show()
