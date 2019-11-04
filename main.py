@@ -1,13 +1,10 @@
 import picamera
 import numpy as np
-from scipy import misc
 import easygopigo3 as easy
 import atexit
 import os
 import glob
-from skimage.transform import hough_line, hough_line_peaks
-from skimage.feature import canny
-from skimage import data
+
 from PIL import Image
 
 def cleanup():
@@ -19,8 +16,8 @@ def cleanup():
 def takePhoto():
   with picamera.PiCamera() as camera:
     camera.start_preview()
-    camera.resolution = (640, 480)
-    output = np.empty((480, 640, 3), dtype=np.uint8)
+    camera.resolution = (320, 240)
+    output = np.empty((240, 320, 3), dtype=np.uint8)
     camera.contrast = 100
     camera.color_effects = (128, 128)
     camera.capture(output, format='rgb')
@@ -35,13 +32,12 @@ def main():
   for x in range(0, 1):
     gpg.open_eyes()
     output = takePhoto()
-    name = 'images/{}.jpg'.format(x)
     im = Image.fromarray(output)
-    thresh = 80 #This is probably the most accurate at around 80 to 100
-    fn = lambda x : 255 if x > thresh else 0
+    fn = lambda y : 255 if y > 30 else 0
     r = im.convert('L').point(fn, mode='1')
-    r.save(name)
-    #img.save(name)
+    im.save('images/{}.jpg'.format(x))
+    image.houghOnImg('images/{}.jpg'.format(x))
+    gpg.close_eyes()
 
 
 if __name__ == "__main__":

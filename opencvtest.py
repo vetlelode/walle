@@ -1,19 +1,13 @@
 import cv2
 import numpy as np
 
-img = cv2.imread('sample/mordi.jpg', 0)
-edges = cv2.Canny(img, 50, 150, apertureSize=3)
-linesP = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, None, 0, 0)
-cdstP = np.copy(cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR))
+img = cv2.imread('images/0.jpg', 0)
+edges = cv2.Canny(img, 20, 255)
+im2, contours, hierarchy = cv2.findContours(
+    edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-if linesP is not None:
-    for i in range(0, len(linesP)):
-        l = linesP[i][0]
-        cv2.line(cdstP, (l[0], l[1]), (l[2], l[3]),
-                 (0, 0, 255), 3, cv2.LINE_AA)
-        print(l)
+demo = cv2.drawContours(img, contours, -1, (255, 255, 0), 3)
 
-
-cv2.imshow('', cdstP)
+cv2.imshow('', demo)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
