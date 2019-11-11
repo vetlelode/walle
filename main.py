@@ -4,8 +4,7 @@ import easygopigo3 as easy
 import atexit
 import os
 import glob
-
-from PIL import Image
+from PIL import Image, ImageOps
 
 def cleanup():
   files = glob.glob('./images/*')
@@ -29,14 +28,14 @@ def main():
   atexit.register(gpg.stop)
   atexit.register(gpg.close_eyes)
 
-  for x in range(0, 1):
+  for x in range(0, 10):
     gpg.open_eyes()
     output = takePhoto()
     im = Image.fromarray(output)
-    fn = lambda y : 255 if y > 30 else 0
-    r = im.convert('L').point(fn, mode='1')
+    #fn = lambda y : 255 if y > 30 else 0
+    #r = im.convert('L').point(fn, mode='1')
+    im = ImageOps.crop(im,(0,50,0,0))
     im.save('images/{}.jpg'.format(x))
-    image.houghOnImg('images/{}.jpg'.format(x))
     gpg.close_eyes()
 
 

@@ -8,7 +8,7 @@ from skimage.transform import probabilistic_hough_line
 def houghOnImg(arg1):      
     image = np.zeros((320, 240))
     image = io.imread(arg1, as_gray=True)
-    im2 = canny(image, sigma=2)
+    im2 = canny(image, sigma=3)
     hugh = probabilistic_hough_line(im2)
 
     fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(8, 3),
