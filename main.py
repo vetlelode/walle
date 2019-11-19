@@ -5,6 +5,8 @@ import atexit
 import os
 import glob
 from PIL import Image, ImageOps
+import image
+import time
 
 def cleanup():
   files = glob.glob('./images/*')
@@ -32,11 +34,13 @@ def main():
     gpg.open_eyes()
     output = takePhoto()
     im = Image.fromarray(output)
-    #fn = lambda y : 255 if y > 30 else 0
-    #r = im.convert('L').point(fn, mode='1')
-    im = ImageOps.crop(im,(0,50,0,0))
     im.save('images/{}.jpg'.format(x))
     gpg.close_eyes()
+    ang, shift = image.process("images/{}.jpg".format(x), False)
+    if (ang >= 85 and ang <= 95):
+        gpg.forward()
+        time.sleep(0.5)
+        gpg.stop() 
 
 
 if __name__ == "__main__":
