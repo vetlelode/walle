@@ -25,7 +25,7 @@ def takePhoto():
   return output
 
 def main():
-  cleanup()
+  #cleanup()
   gpg = easy.EasyGoPiGo3()
   atexit.register(gpg.stop)
   atexit.register(gpg.close_eyes)
@@ -34,13 +34,17 @@ def main():
     gpg.open_eyes()
     output = takePhoto()
     im = Image.fromarray(output)
-    im.save('images/{}.jpg'.format(x))
+    im = ImageOps.crop(im,(0,35,0,0))
+    #im.save('images/{}.jpg'.format(x))
     gpg.close_eyes()
-    ang, shift = image.process("images/{}.jpg".format(x), False)
-    if (ang >= 85 and ang <= 95):
-        gpg.forward()
-        time.sleep(0.5)
-        gpg.stop() 
+    ang, shift = image.process("images/{}.jpg".format(x), True)
+    if (ang >= 80 and ang <= 96):
+      gpg.forward()
+      time.sleep(0.5)
+      gpg.stop()
+    elif (shift >= 30 or shift <= -30):
+      print("hei")
+      #gpg.turn_degrees(-shift)
 
 
 if __name__ == "__main__":
