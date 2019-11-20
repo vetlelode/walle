@@ -5,13 +5,13 @@ import geo as geom
 def process(im, demo=True):
     img = cv2.imread(im)
     h, w, chn = img.shape
-    print(img.shape)
     imgray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ret, thresh = cv2.threshold(imgray, 127, 255, 0)
     im2, contours, hierarchy = cv2.findContours(
         thresh, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-    C = None
     print(len(contours))
+    cv2.drawContours(img, contours, 0, (0, 0, 255), 1)
+    C = None
     if contours is not None and len(contours) > 0:
         C = max(contours, key=cv2.contourArea)
         rect = cv2.minAreaRect(C)
@@ -24,8 +24,6 @@ def process(im, demo=True):
         shift = geom.get_horz_shift(p1[0], w)
         print("Angle: {0}\nShift: {1}\nBox: {2}{3}".format(
             angle, shift, p1, p2))
-
-
         if demo:
             cv2.drawContours(img, [box], 0, (0, 0, 255), 2)
             cv2.drawContours(img, [box], 0, (255, 0, 0), 2)
@@ -37,9 +35,7 @@ def process(im, demo=True):
                         0.5, (255, 255, 255), 1)
             cv2.putText(img, msg_s, (10, 40), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, (255, 255, 255), 1)
-            cv2.imshow('', thresh)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+
             cv2.imshow('', img)
             cv2.waitKey(0)
             cv2.destroyAllWindows()

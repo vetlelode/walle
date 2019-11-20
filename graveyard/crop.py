@@ -1,5 +1,6 @@
 from PIL import Image, ImageOps
 
-im = Image.open("../sample/straightLine/0.jpg")
-im = ImageOps.crop(im, (0, 50, 0, 0))
-im.save('../sample/0.jpg')
+for x in range(1, 9):
+    im = Image.open("../sample/images/{}.jpg".format(x))
+    im = ImageOps.crop(im, (0, 50, 0, 0))
+    im.save('../sample/images/{}.jpg'.format(x))

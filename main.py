@@ -25,26 +25,51 @@ def takePhoto():
   return output
 
 def main():
-  #cleanup()
+  cleanup()
   gpg = easy.EasyGoPiGo3()
   atexit.register(gpg.stop)
   atexit.register(gpg.close_eyes)
 
-  for x in range(0, 10):
+  for x in range(0, 1000):
     gpg.open_eyes()
     output = takePhoto()
     im = Image.fromarray(output)
-    im = ImageOps.crop(im,(0,35,0,0))
-    #im.save('images/{}.jpg'.format(x))
+    im = ImageOps.crop(im,(0,40,0,0))
+    im.save('images/{}.jpg'.format(x))
     gpg.close_eyes()
-    ang, shift = image.process("images/{}.jpg".format(x), True)
-    if (ang >= 80 and ang <= 96):
-      gpg.forward()
-      time.sleep(0.5)
-      gpg.stop()
-    elif (shift >= 30 or shift <= -30):
-      print("hei")
-      #gpg.turn_degrees(-shift)
+    ang, shift = image.process("images/{}.jpg".format(x), False)
+    drive(ang, shift)
+
+      
+def drive(ang, shift):
+  gpg = easy.EasyGoPiGo3()
+  atexit.register(gpg.stop)
+  atexit.register(gpg.close_eyes)
+
+  if (ang == 0):
+    gpg.backward()
+    time.sleep(0.2)
+    gpg.stop()
+    return
+  if (ang >= 95 and shift >= 0):
+    shift = -abs(shift)
+  if (abs(shift) >= 20 and not (ang >= 86 and ang <= 94)):
+    gpg.forward()
+    time.sleep(0.35)
+    gpg.turn_degrees(shift/15)
+    gpg.stop()
+  elif (ang >= 86 and ang <= 94):
+    gpg.forward()
+    time.sleep(0.5)
+    if (abs(shift) >= 40):
+      gpg.turn_degrees(shift/5)
+    gpg.stop()
+  else:
+    gpg.backward()
+    time.sleep(0.7)
+    gpg.stop()
+
+
 
 
 if __name__ == "__main__":
