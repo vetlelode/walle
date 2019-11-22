@@ -30,6 +30,7 @@ RESOLUTION_X = 320
 RESOLUTION_Y = 240
 
 DEMO = True
+MOVE = True
 # This is half the width of the line at the bottom of the screen that we start looking for
 # the line we want to follow.
 SCAN_RADIUS = RESOLUTION_X / 2
@@ -230,6 +231,11 @@ def onLineWidthChange(newValue):
 
 
 def main():
+    direction = "r"
+    print(str(sys.argv))
+    if len(sys.argv) >= 2 and str(sys.argv[1]) == "left":
+        direction = "l"
+       
     # Create the in-memory stream
     stream = io.BytesIO()
     if DEMO:
@@ -240,19 +246,19 @@ def main():
 
         # Add some controls to the window
         cv2.createTrackbar(CONTROL_SCAN_RADIUS,
-                       WINDOW_DISPLAY_IMAGE, 5, 100, onScanRadiusChange)
+                           WINDOW_DISPLAY_IMAGE, 5, 100, onScanRadiusChange)
         cv2.setTrackbarPos(CONTROL_SCAN_RADIUS,
-                       WINDOW_DISPLAY_IMAGE, SCAN_RADIUS_REG)
+                           WINDOW_DISPLAY_IMAGE, SCAN_RADIUS_REG)
 
         cv2.createTrackbar(CONTROL_NUMBER_OF_CIRCLES,
-                       WINDOW_DISPLAY_IMAGE, 0, 6, onCircleScanChange)
+                           WINDOW_DISPLAY_IMAGE, 0, 6, onCircleScanChange)
         cv2.setTrackbarPos(CONTROL_NUMBER_OF_CIRCLES,
-                       WINDOW_DISPLAY_IMAGE, NUMBER_OF_CIRCLES)
+                           WINDOW_DISPLAY_IMAGE, NUMBER_OF_CIRCLES)
 
         cv2.createTrackbar(CONTROL_LINE_WIDTH, WINDOW_DISPLAY_IMAGE,
-                       0, RESOLUTION_X, onLineWidthChange)
+                           0, RESOLUTION_X, onLineWidthChange)
         cv2.setTrackbarPos(CONTROL_LINE_WIDTH,
-                       WINDOW_DISPLAY_IMAGE, SCAN_RADIUS * 2)
+                           WINDOW_DISPLAY_IMAGE, SCAN_RADIUS * 2)
 
     returnString = """
 Press Esc to end the program
@@ -362,11 +368,13 @@ Baseline Width: {}
                 line_scan_length,
                 line_length_from_center)
             print(returnString)
-            move.move(lineAngle(center_point, last_point) * -1 - 90,
-                      center_x_distance,
-                      center_y_distance,
-                      line_scan_length,
-                      line_length_from_center)
+            if MOVE:
+                move.move(lineAngle(center_point, last_point) * -1 - 90,
+                          center_x_distance,
+                          center_y_distance,
+                          line_scan_length,
+                          line_length_from_center,
+                          direction)
             # Wait for ESC to end program
             c = cv2.waitKey(7) % 0x100
             if c == 27:
@@ -379,3 +387,4 @@ Baseline Width: {}
 
 if __name__ == "__main__":
     main()
+    
