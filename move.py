@@ -1,12 +1,8 @@
 import easygopigo3 as easy
+import time
 
-gpg = easy.EasyGoPiGo3()
 
-for x in range(2):
-
-    radius = 30
-    gpg.orbit(-270, radius)  # to rotate to the left
-    gpg.drive_cm(radius * 2)  # move forward
-    gpg.orbit(270, radius)  # to rotate to the right
-    gpg.drive_cm(radius * 2)  # move forward
-    rn_degrees(720)
+def move(bearing, cent_x, cent_y, line_scan_length, line_from_cent):
+    gpg = easy.EasyGoPiGo3()
+    gpg.turn_degrees(bearing/4)
+    gpg.drive_cm(5)
