@@ -29,7 +29,7 @@ CONTROL_LINE_WIDTH = 'Line Width'
 RESOLUTION_X = 320
 RESOLUTION_Y = 240
 
-DEMO = False
+DEMO = True
 # This is half the width of the line at the bottom of the screen that we start looking for
 # the line we want to follow.
 SCAN_RADIUS = RESOLUTION_X / 2
@@ -39,10 +39,10 @@ SCAN_HEIGHT = RESOLUTION_Y - 5
 SCAN_POS_X = RESOLUTION_X / 2
 
 # This is the radius that we scan from the last known point for each of the circles
-SCAN_RADIUS_REG = 85
+SCAN_RADIUS_REG = 90
 # The number of itterations we scan to allow us to look ahead and give us more time
 # to make better choices
-NUMBER_OF_CIRCLES = 2
+NUMBER_OF_CIRCLES = 1
 
 
 def scanLine(image, display_image, point, radius):
@@ -240,7 +240,7 @@ def main():
 
         # Add some controls to the window
         cv2.createTrackbar(CONTROL_SCAN_RADIUS,
-                       WINDOW_DISPLAY_IMAGE, 5, 60, onScanRadiusChange)
+                       WINDOW_DISPLAY_IMAGE, 5, 100, onScanRadiusChange)
         cv2.setTrackbarPos(CONTROL_SCAN_RADIUS,
                        WINDOW_DISPLAY_IMAGE, SCAN_RADIUS_REG)
 
