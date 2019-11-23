@@ -30,7 +30,7 @@ RESOLUTION_X = 320
 RESOLUTION_Y = 240
 
 DEMO = True
-MOVE = True
+MOVE = False
 # This is half the width of the line at the bottom of the screen that we start looking for
 # the line we want to follow.
 SCAN_RADIUS = RESOLUTION_X / 2
