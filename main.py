@@ -40,7 +40,7 @@ SCAN_HEIGHT = RESOLUTION_Y - 5
 SCAN_POS_X = RESOLUTION_X / 2
 
 # This is the radius that we scan from the last known point for each of the circles
-SCAN_RADIUS_REG = 90
+SCAN_RADIUS_REG = 85
 # The number of itterations we scan to allow us to look ahead and give us more time
 # to make better choices
 NUMBER_OF_CIRCLES = 1
@@ -211,32 +211,17 @@ def lineLength(point1, point2):
     dy = point1[1] - point2[1]
     return int(round(math.sqrt(dx*dx + dy*dy)))
 
-
-def onScanRadiusChange(newValue):
-    global SCAN_RADIUS_REG
-    SCAN_RADIUS_REG = newValue
-    return
-
-
-def onCircleScanChange(newValue):
-    global NUMBER_OF_CIRCLES
-    NUMBER_OF_CIRCLES = newValue
-    return
-
-
-def onLineWidthChange(newValue):
-    global SCAN_RADIUS
-    SCAN_RADIUS = int(round(newValue/2))
-    return
-
-
 def main():
     direction = "r"
-    print(str(sys.argv))
+    track = "simple"
     if len(sys.argv) >= 2 and str(sys.argv[1]) == "left":
         direction = "l"
+    if len(sys.argv) >= 3 and str(sys.argv[2]) == "hard":
+        track = "hard"
        
     # Create the in-memory stream
+    fork = cv2.imread("sample/forkcrop.jpg")
+    fork = cv2.cvtColor(fork, cv2.COLOR_RGB2GRAY)
     stream = io.BytesIO()
     if DEMO:
         # Create a window
@@ -244,63 +229,28 @@ def main():
         # position the window
         cv2.moveWindow(WINDOW_DISPLAY_IMAGE, 0, 35)
 
-        # Add some controls to the window
-        cv2.createTrackbar(CONTROL_SCAN_RADIUS,
-                           WINDOW_DISPLAY_IMAGE, 5, 100, onScanRadiusChange)
-        cv2.setTrackbarPos(CONTROL_SCAN_RADIUS,
-                           WINDOW_DISPLAY_IMAGE, SCAN_RADIUS_REG)
-
-        cv2.createTrackbar(CONTROL_NUMBER_OF_CIRCLES,
-                           WINDOW_DISPLAY_IMAGE, 0, 6, onCircleScanChange)
-        cv2.setTrackbarPos(CONTROL_NUMBER_OF_CIRCLES,
-                           WINDOW_DISPLAY_IMAGE, NUMBER_OF_CIRCLES)
-
-        cv2.createTrackbar(CONTROL_LINE_WIDTH, WINDOW_DISPLAY_IMAGE,
-                           0, RESOLUTION_X, onLineWidthChange)
-        cv2.setTrackbarPos(CONTROL_LINE_WIDTH,
-                           WINDOW_DISPLAY_IMAGE, SCAN_RADIUS * 2)
-
-    returnString = """
-Press Esc to end the program
-Using camera resolution: {}x{}
-Centre point: {}:{}
-Scan radius: {}
-Number of search itterations: {}
-Baseline Width: {}
-""".format(RESOLUTION_X, RESOLUTION_Y, SCAN_POS_X, SCAN_HEIGHT, SCAN_RADIUS_REG, NUMBER_OF_CIRCLES, SCAN_RADIUS * 2)
-
-    print(returnString)
-
     # Open connection to camera
     with picamera.PiCamera() as camera:
         # Set camera resolution
         camera.resolution = (RESOLUTION_X, RESOLUTION_Y)
-
         # Start loop
         while True:
             # Get the tick count so we can keep track of performance
             e1 = cv2.getTickCount()
-
             # Capture image from camera
             camera.capture(stream, format='jpeg', use_video_port=True)
-
             # Convert image from camera to a numpy array
             data = np.fromstring(stream.getvalue(), dtype=np.uint8)
-
             # Decode the numpy array image
             image = cv2.imdecode(data, cv2.CV_LOAD_IMAGE_COLOR)
-
             # Empty and return the in-memory stream to beginning
             stream.seek(0)
             stream.truncate(0)
-
             # Create other images
             grey_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
             display_image = cv2.copyMakeBorder(
                 image, 0, 0, 0, 0, cv2.BORDER_REPLICATE)
-
             center_point = (SCAN_POS_X, SCAN_HEIGHT)
-
             # San a horizontal line based on the centre point
             # We could just use this data to work out how far off centre we are and steer accordingly.
             # Get a data array of all the falues along that line
@@ -311,7 +261,6 @@ Baseline Width: {}
             # The center point we believe the line we are following intersects with our scan line.
             point_on_line = findLine(
                 display_image, scan_data, SCAN_POS_X, SCAN_HEIGHT, SCAN_RADIUS)
-
             # Start scanning the arcs
             # This allows us to look ahead further ahead at the line and work out an angle to steer
             # From the intersection point of the line, scan in an arc to find the line
@@ -341,6 +290,40 @@ Baseline Width: {}
                         last_point[0], last_point[1]), (255, 255, 255), 1)
                 else:
                     break
+            if (track == "hard"):
+        
+                img2 = grey_image.copy()
+                h, w = fork.shape
+                # All the 6 methods for comparison in a list
+                methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR',
+                    'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED']
+                avrg = []
+                for meth in methods:
+                    method = eval(meth)
+                    res = cv2.matchTemplate(img2, fork, method)
+                    print(res)
+                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                    # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
+                    loc = np.where( res >= 0.8)
+                    if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
+                        top_left = min_loc
+                    else:
+                        top_left = max_loc
+                    bottom_right = (top_left[0] + w, top_left[1] + h)
+                    avrg.append([top_left, bottom_right])
+                if len(avrg) >= 3:
+                    average = [(0,0), (0,0)]
+                    for avg in avrg:
+                        average[0] = tuple(sum(x) for x in zip(average[0], avg[0]))
+                        average[1] = tuple(sum(x) for x in zip(average[1], avg[1]))
+                    top_left, bottom_right = average
+                    top_left = tuple(x/len(avrg) for x in top_left)
+                    bottom_right = tuple(x/len(avrg) for x in bottom_right)
+                    
+                    cv2.rectangle(img2, top_left, bottom_right, 255, 2)
+                    cv2.imshow('', img2)
+                    cv2.waitKey(0)
+                    cv2.destroyAllWindows()              
 
             # Draw a line from the centre point to the end point where we last found the line we are following
             cv2.line(display_image, (center_point[0], center_point[1]), (
@@ -379,9 +362,7 @@ Baseline Width: {}
             c = cv2.waitKey(7) % 0x100
             if c == 27:
                 break
-    print "Closing program"
     cv2.destroyAllWindows()
-    print "All windows should be closed"
     return
 
 
