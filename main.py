@@ -30,7 +30,7 @@ RESOLUTION_X = 320
 RESOLUTION_Y = 240
 
 DEMO = True
-MOVE = False
+MOVE = True
 # This is half the width of the line at the bottom of the screen that we start looking for
 # the line we want to follow.
 SCAN_RADIUS = RESOLUTION_X / 2
@@ -219,9 +219,6 @@ def main():
     if len(sys.argv) >= 3 and str(sys.argv[2]) == "hard":
         track = "hard"
        
-    # Create the in-memory stream
-    fork = cv2.imread("sample/forkcrop.jpg")
-    fork = cv2.cvtColor(fork, cv2.COLOR_RGB2GRAY)
     stream = io.BytesIO()
     if DEMO:
         # Create a window
@@ -235,6 +232,7 @@ def main():
         camera.resolution = (RESOLUTION_X, RESOLUTION_Y)
         # Start loop
         while True:
+            intersection = False
             # Get the tick count so we can keep track of performance
             e1 = cv2.getTickCount()
             # Capture image from camera
@@ -290,41 +288,6 @@ def main():
                         last_point[0], last_point[1]), (255, 255, 255), 1)
                 else:
                     break
-            if (track == "hard"):
-        
-                img2 = grey_image.copy()
-                h, w = fork.shape
-                # All the 6 methods for comparison in a list
-                methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR',
-                    'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED']
-                avrg = []
-                for meth in methods:
-                    method = eval(meth)
-                    res = cv2.matchTemplate(img2, fork, method)
-                    print(res)
-                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-                    # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
-                    loc = np.where( res >= 0.8)
-                    if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
-                        top_left = min_loc
-                    else:
-                        top_left = max_loc
-                    bottom_right = (top_left[0] + w, top_left[1] + h)
-                    avrg.append([top_left, bottom_right])
-                if len(avrg) >= 3:
-                    average = [(0,0), (0,0)]
-                    for avg in avrg:
-                        average[0] = tuple(sum(x) for x in zip(average[0], avg[0]))
-                        average[1] = tuple(sum(x) for x in zip(average[1], avg[1]))
-                    top_left, bottom_right = average
-                    top_left = tuple(x/len(avrg) for x in top_left)
-                    bottom_right = tuple(x/len(avrg) for x in bottom_right)
-                    
-                    cv2.rectangle(img2, top_left, bottom_right, 255, 2)
-                    cv2.imshow('', img2)
-                    cv2.waitKey(0)
-                    cv2.destroyAllWindows()              
-
             # Draw a line from the centre point to the end point where we last found the line we are following
             cv2.line(display_image, (center_point[0], center_point[1]), (
                 last_point[0], last_point[1]), (0, 0, 255), 1)
@@ -351,7 +314,47 @@ def main():
                 line_scan_length,
                 line_length_from_center)
             print(returnString)
-            if MOVE:
+
+            if (track == "hard"):
+                ret, thresh = cv2.threshold(grey_image, 127, 255, 0)
+                thresh = thresh[100:240, 0:320]
+                contours_right, hierarchy = cv2.findContours(
+                    thresh[0:140, 180:320], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+                contours_left, hierarchy = cv2.findContours(
+                    thresh[0:140, 0:140], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)               
+                if DEMO:
+                    croppedImg = image.copy()
+                    croppedImg_right = croppedImg[100:240, 180:320]
+                    croppedImg_left = croppedImg[100:240, 0:140]
+                    cv2.drawContours(croppedImg_right, contours_right, 0, (0, 0, 255), 2)
+                    cv2.drawContours(croppedImg_left, contours_left, 0, (0, 255, 0), 2)
+                    numpy_horizontal = np.hstack((croppedImg_left,croppedImg_right))
+                    cv2.imshow('', numpy_horizontal)           
+                    cv2.waitKey(0)
+                    cv2.destroyAllWindows()
+                #If a interection is detected pull some evasive manouvers
+                if len(contours_right) >= 1 and len(contours_left) >= 1:
+                    print(len(contours_right))
+                    contour_right = max(contours_right, key=cv2.contourArea)
+                    contour_left = max(contours_left, key=cv2.contourArea)
+                    area = cv2.contourArea(contour_right)
+                    x,y,w,h = cv2.boundingRect(contour_right)
+                    rect_area = w*h
+                    extent_right = float(area) / rect_area
+                    area = cv2.contourArea(contour_left)
+                    x,y,w,h = cv2.boundingRect(contour_left)
+                    rect_area = w * h
+                    extent_left = float(area) / rect_area 
+
+
+                    print(extent_left, extent_right)
+                    if extent_left >= 0.5 and extent_right>= 0.5:
+                        print("2 <= contours, most likely an intersection, EVASIVE MANOUVERS !")
+                        intersection = True
+                    if MOVE and intersection:
+                        move.intersection()
+                                  
+            if MOVE and not intersection:
                 move.move(lineAngle(center_point, last_point) * -1 - 90,
                           center_x_distance,
                           center_y_distance,
