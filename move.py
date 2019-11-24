@@ -24,3 +24,10 @@ def move(bearing, cent_x, cent_y, line_scan_length, line_from_cent, direction):
             gpg.turn_degrees(bearing / 4)
 
         gpg.drive_cm(5)
+
+
+def intersection():
+    gpg = easy.EasyGoPiGo3()
+    gpg.turn_degrees(30)
+    gpg.drive_cm(8)
+    gpg.turn_degrees(-15)

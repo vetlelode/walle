@@ -30,7 +30,7 @@ RESOLUTION_X = 320
 RESOLUTION_Y = 240
 
 DEMO = True
-MOVE = True
+MOVE = False
 # This is half the width of the line at the bottom of the screen that we start looking for
 # the line we want to follow.
 SCAN_RADIUS = RESOLUTION_X / 2
@@ -190,13 +190,6 @@ def findLine(display_image, scan_data, x, y, radius):
             right[0] = index
 
     line_position = (right[0] + left[0]) / 2
-    #print("line position {} {}, {} - {}".format(scan_start, left, right, line_position))
-    # mid point, where we believe is the centre of the line
-    #cv2.circle(display_image, (scan_start + line_position, y), 5, (0, 204, 102), -1, 8, 0)
-    # left boundrary dot on the line
-    #cv2.circle(display_image, (scan_start + left[0], y), 5, (0, 0, 102), -1, 4, 0)
-    # right boundrary dot on the line
-    #cv2.circle(display_image, (scan_start + right[0], y), 5, (0, 0, 102), -1, 4, 0)
     return (scan_start + line_position, y)
 
 
@@ -249,6 +242,44 @@ def main():
             display_image = cv2.copyMakeBorder(
                 image, 0, 0, 0, 0, cv2.BORDER_REPLICATE)
             center_point = (SCAN_POS_X, SCAN_HEIGHT)
+            if (track == "hard"):
+                ret, thresh = cv2.threshold(grey_image, 127, 255, 0)
+                thresh = thresh[100:240, 0:320]
+                contours_right, hierarchy = cv2.findContours(
+                    thresh[0:140, 180:320], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+                contours_left, hierarchy = cv2.findContours(
+                    thresh[0:140, 0:140], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)               
+
+                #If a interection is detected pull some evasive manouvers
+                if len(contours_right) >= 1 and len(contours_left) >= 1:
+                    print(len(contours_right))
+                    contour_right = max(contours_right, key=cv2.contourArea)
+                    contour_left = max(contours_left, key=cv2.contourArea)
+                    area = cv2.contourArea(contour_right)
+                    x,y,w,h = cv2.boundingRect(contour_right)
+                    rect_area = w*h
+                    extent_right = float(area) / rect_area
+                    area = cv2.contourArea(contour_left)
+                    x,y,w,h = cv2.boundingRect(contour_left)
+                    rect_area = w * h
+                    extent_left = float(area) / rect_area 
+
+                    print(extent_left, extent_right)
+                    if extent_left >= 0.5 and extent_right>= 0.5:
+                        print("2 <= contours, most likely an intersection, EVASIVE MANOUVERS !")
+                        intersection = True
+                        cv2.rectangle(display_image, (0, 0), (160, 240), (0, 0, 0), -1)
+                        cv2.rectangle(grey_image, (0, 0), (160, 240), (0,0,0), -1)
+                    if DEMO:
+                        croppedImg = image.copy()
+                        croppedImg_right = croppedImg[100:240, 180:320]
+                        croppedImg_left = croppedImg[100:240, 0:140]
+                        cv2.drawContours(croppedImg_right, contours_right, 0, (0, 0, 255), 2)
+                        cv2.drawContours(croppedImg_left, contours_left, 0, (0, 255, 0), 2)
+                        numpy_horizontal = np.hstack((croppedImg_left,croppedImg_right))
+                        cv2.imshow('', numpy_horizontal)           
+                        cv2.waitKey(0)
+                        cv2.destroyAllWindows()
             # San a horizontal line based on the centre point
             # We could just use this data to work out how far off centre we are and steer accordingly.
             # Get a data array of all the falues along that line
@@ -314,45 +345,6 @@ def main():
                 line_scan_length,
                 line_length_from_center)
             print(returnString)
-
-            if (track == "hard"):
-                ret, thresh = cv2.threshold(grey_image, 127, 255, 0)
-                thresh = thresh[100:240, 0:320]
-                contours_right, hierarchy = cv2.findContours(
-                    thresh[0:140, 180:320], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-                contours_left, hierarchy = cv2.findContours(
-                    thresh[0:140, 0:140], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)               
-                if DEMO:
-                    croppedImg = image.copy()
-                    croppedImg_right = croppedImg[100:240, 180:320]
-                    croppedImg_left = croppedImg[100:240, 0:140]
-                    cv2.drawContours(croppedImg_right, contours_right, 0, (0, 0, 255), 2)
-                    cv2.drawContours(croppedImg_left, contours_left, 0, (0, 255, 0), 2)
-                    numpy_horizontal = np.hstack((croppedImg_left,croppedImg_right))
-                    cv2.imshow('', numpy_horizontal)           
-                    cv2.waitKey(0)
-                    cv2.destroyAllWindows()
-                #If a interection is detected pull some evasive manouvers
-                if len(contours_right) >= 1 and len(contours_left) >= 1:
-                    print(len(contours_right))
-                    contour_right = max(contours_right, key=cv2.contourArea)
-                    contour_left = max(contours_left, key=cv2.contourArea)
-                    area = cv2.contourArea(contour_right)
-                    x,y,w,h = cv2.boundingRect(contour_right)
-                    rect_area = w*h
-                    extent_right = float(area) / rect_area
-                    area = cv2.contourArea(contour_left)
-                    x,y,w,h = cv2.boundingRect(contour_left)
-                    rect_area = w * h
-                    extent_left = float(area) / rect_area 
-
-
-                    print(extent_left, extent_right)
-                    if extent_left >= 0.5 and extent_right>= 0.5:
-                        print("2 <= contours, most likely an intersection, EVASIVE MANOUVERS !")
-                        intersection = True
-                    if MOVE and intersection:
-                        move.intersection()
                                   
             if MOVE and not intersection:
                 move.move(lineAngle(center_point, last_point) * -1 - 90,
