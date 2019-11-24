@@ -30,7 +30,7 @@ RESOLUTION_X = 320
 RESOLUTION_Y = 240
 
 DEMO = True
-MOVE = False
+MOVE = True
 # This is half the width of the line at the bottom of the screen that we start looking for
 # the line we want to follow.
 SCAN_RADIUS = RESOLUTION_X / 2
@@ -107,7 +107,6 @@ def scanCircle(image, display_image, point, radius, look_angle):
     for i in range(0, 180, 1):
         current_angle = startAngle + i
         scan_point = coordinateFromPoint(point, current_angle, radius)
-
         if inImageBounds(image, scan_point[0], scan_point[1]):
             imageValue = image[scan_point[1]][scan_point[0]]
             data[i] = [imageValue, scan_point[0], scan_point[1]]
@@ -225,7 +224,7 @@ def main():
         camera.resolution = (RESOLUTION_X, RESOLUTION_Y)
         # Start loop
         while True:
-            intersection = False
+            mod = 0
             # Get the tick count so we can keep track of performance
             e1 = cv2.getTickCount()
             # Capture image from camera
@@ -246,40 +245,33 @@ def main():
                 ret, thresh = cv2.threshold(grey_image, 127, 255, 0)
                 thresh = thresh[100:240, 0:320]
                 contours_right, hierarchy = cv2.findContours(
-                    thresh[0:140, 180:320], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+                    thresh[0:140, 170:320], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
                 contours_left, hierarchy = cv2.findContours(
-                    thresh[0:140, 0:140], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)               
+                    thresh[0:140, 0:150], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)               
 
                 #If a interection is detected pull some evasive manouvers
                 if len(contours_right) >= 1 and len(contours_left) >= 1:
-                    print(len(contours_right))
                     contour_right = max(contours_right, key=cv2.contourArea)
                     contour_left = max(contours_left, key=cv2.contourArea)
-                    area = cv2.contourArea(contour_right)
-                    x,y,w,h = cv2.boundingRect(contour_right)
-                    rect_area = w*h
-                    extent_right = float(area) / rect_area
-                    area = cv2.contourArea(contour_left)
-                    x,y,w,h = cv2.boundingRect(contour_left)
-                    rect_area = w * h
-                    extent_left = float(area) / rect_area 
-
+                    extent_right = cv2.contourArea(contour_right)
+                    extent_left = cv2.contourArea(contour_left)
                     print(extent_left, extent_right)
-                    if extent_left >= 0.5 and extent_right>= 0.5:
-                        print("2 <= contours, most likely an intersection, EVASIVE MANOUVERS !")
-                        intersection = True
+                    if extent_left >= 21000/5 and extent_right>= 21000/5:
+                        print("More than 2 large contours, most likely an intersection, EVASIVE MANOUVERS !")
                         cv2.rectangle(display_image, (0, 0), (160, 240), (0, 0, 0), -1)
-                        cv2.rectangle(grey_image, (0, 0), (160, 240), (0,0,0), -1)
+                        cv2.rectangle(display_image, (0,0), (320, 80),(0, 0, 0), -1)
+                        cv2.rectangle(grey_image, (0, 0), (160, 240), (0, 0, 0), -1)
+                        cv2.rectangle(grey_image, (0, 0), (320, 80), (0, 0, 0), -1)
+                        mod = -1
                     if DEMO:
                         croppedImg = image.copy()
-                        croppedImg_right = croppedImg[100:240, 180:320]
-                        croppedImg_left = croppedImg[100:240, 0:140]
+                        croppedImg_right = croppedImg[100:240, 170:320]
+                        croppedImg_left = croppedImg[100:240, 0:150]
                         cv2.drawContours(croppedImg_right, contours_right, 0, (0, 0, 255), 2)
                         cv2.drawContours(croppedImg_left, contours_left, 0, (0, 255, 0), 2)
-                        numpy_horizontal = np.hstack((croppedImg_left,croppedImg_right))
-                        cv2.imshow('', numpy_horizontal)           
-                        cv2.waitKey(0)
-                        cv2.destroyAllWindows()
+                        numpy_horizontal = np.hstack((croppedImg_left, croppedImg_right))
+            else:
+                numpy_horizontal = None
             # San a horizontal line based on the centre point
             # We could just use this data to work out how far off centre we are and steer accordingly.
             # Get a data array of all the falues along that line
@@ -306,7 +298,7 @@ def main():
                 last_point[0], last_point[1]), (255, 255, 255), 1)
 
             actual_number_of_circles = 0
-            for scan_count in range(0, NUMBER_OF_CIRCLES):
+            for scan_count in range(0, NUMBER_OF_CIRCLES + mod):
                 returnVal, scan_data = scanCircle(
                     grey_image, display_image, last_point, SCAN_RADIUS_REG, lineAngle(previous_point, last_point))
 
@@ -326,6 +318,8 @@ def main():
             # Display the image
             if DEMO:
                 cv2.imshow(WINDOW_DISPLAY_IMAGE, display_image)
+                if numpy_horizontal is not None:
+                    cv2.imshow('Contours', numpy_horizontal)
 
             # This is the maximum distance the end point of our search for a line can be from the centre point.
             line_scan_length = SCAN_RADIUS_REG * (actual_number_of_circles + 1)
@@ -336,18 +330,22 @@ def main():
 
             # Stop counting all work is done at this point and calculate how we are doing.
             e2 = cv2.getTickCount()
-
+            bearing = lineAngle(center_point, last_point) * -1 - 90
             returnString = "fps {} - bearing {} - x:{} y:{} look distance:{} distance from origin:{}".format(
                 1000 / ((e2 - e1)/cv2.getTickFrequency() * 1000),
-                lineAngle(center_point, last_point) * -1 - 90,
+                bearing,
                 center_x_distance,
                 center_y_distance,
                 line_scan_length,
                 line_length_from_center)
             print(returnString)
-                                  
-            if MOVE and not intersection:
-                move.move(lineAngle(center_point, last_point) * -1 - 90,
+            
+            if MOVE:
+                if mod == -1 and bearing <= 5:
+                    print("Derped out on intersection setting bearing to 45 degrees")
+                    bearing = 45
+
+                move.move(bearing,
                           center_x_distance,
                           center_y_distance,
                           line_scan_length,
