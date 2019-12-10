@@ -6,26 +6,12 @@ import numpy as np
 import sys
 import math
 import serial
-from multiprocessing.dummy import Pool as ThreadPool
 import move
 
 # The grey image is used for most of the calculations and isn't displayed
 WINDOW_GRAY_IMAGE = 'gray image'
 # This is displayed on screen with overlays showing the line tracking
 WINDOW_DISPLAY_IMAGE = 'display image'
-
-# Trackbar controls so you can refine how the search works
-CONTROL_SCAN_RADIUS = 'Scan Radius'
-CONTROL_NUMBER_OF_CIRCLES = 'Number of Scans'
-CONTROL_LINE_WIDTH = 'Line Width'
-
-# Resolution of the camera image. larger images allow for more detail, but take more to process.
-# valid resolutions include:
-#   160 x 120
-#   320 x 240
-#   640 x 480
-#   800 x 600
-# etc...
 RESOLUTION_X = 320
 RESOLUTION_Y = 240
 
@@ -38,7 +24,6 @@ SCAN_RADIUS = RESOLUTION_X / 2
 SCAN_HEIGHT = RESOLUTION_Y - 5
 # This is our centre. We assume that we want to try and track the line in relation to this point
 SCAN_POS_X = RESOLUTION_X / 2
-
 # This is the radius that we scan from the last known point for each of the circles
 SCAN_RADIUS_REG = 85
 # The number of itterations we scan to allow us to look ahead and give us more time
@@ -83,11 +68,8 @@ def scanCircle(image, display_image, point, radius, look_angle):
     y = point[1]
     scan_start = x - radius
     scan_end = x + radius
-
     endpoint_left = coordinateFromPoint(point, look_angle - 90, radius)
     endpoint_right = coordinateFromPoint(point, look_angle + 90, radius)
-
-    #print("scanline left:{} right:{} angle:{}".format(endpoint_left, endpoint_right, look_angle))
     # Draw a circle to indicate where we start and end scanning.
     cv2.circle(display_image,
                (endpoint_left[0], endpoint_left[1]), 5, (255, 100, 100), -1, 8, 0)
@@ -203,6 +185,7 @@ def lineLength(point1, point2):
     dy = point1[1] - point2[1]
     return int(round(math.sqrt(dx*dx + dy*dy)))
 
+
 def main():
     direction = "r"
     track = "simple"
@@ -210,7 +193,7 @@ def main():
         direction = "l"
     if len(sys.argv) >= 3 and str(sys.argv[2]) == "hard":
         track = "hard"
-       
+
     stream = io.BytesIO()
     if DEMO:
         # Create a window
@@ -247,29 +230,37 @@ def main():
                 contours_right, hierarchy = cv2.findContours(
                     thresh[0:140, 170:320], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
                 contours_left, hierarchy = cv2.findContours(
-                    thresh[0:140, 0:150], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)               
+                    thresh[0:140, 0:150], cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
-                #If a interection is detected pull some evasive manouvers
+                # If a interection is detected pull some evasive manouvers
                 if len(contours_right) >= 1 and len(contours_left) >= 1:
                     contour_right = max(contours_right, key=cv2.contourArea)
                     contour_left = max(contours_left, key=cv2.contourArea)
                     extent_right = cv2.contourArea(contour_right)
                     extent_left = cv2.contourArea(contour_left)
                     print(extent_left, extent_right)
-                    if extent_left >= 21000/5 and extent_right>= 21000/5:
-                        print("More than 2 large contours, most likely an intersection, EVASIVE MANOUVERS !")
-                        cv2.rectangle(display_image, (0, 0), (160, 240), (0, 0, 0), -1)
-                        cv2.rectangle(display_image, (0,0), (320, 80),(0, 0, 0), -1)
-                        cv2.rectangle(grey_image, (0, 0), (160, 240), (0, 0, 0), -1)
-                        cv2.rectangle(grey_image, (0, 0), (320, 80), (0, 0, 0), -1)
+                    if extent_left >= 21000/5 and extent_right >= 21000/5:
+                        print(
+                            "More than 2 large contours, most likely an intersection, EVASIVE MANOUVERS !")
+                        cv2.rectangle(display_image, (0, 0),
+                                      (160, 240), (0, 0, 0), -1)
+                        cv2.rectangle(display_image, (0, 0),
+                                      (320, 80), (0, 0, 0), -1)
+                        cv2.rectangle(grey_image, (0, 0),
+                                      (160, 240), (0, 0, 0), -1)
+                        cv2.rectangle(grey_image, (0, 0),
+                                      (320, 80), (0, 0, 0), -1)
                         mod = -1
                     if DEMO:
                         croppedImg = image.copy()
                         croppedImg_right = croppedImg[100:240, 170:320]
                         croppedImg_left = croppedImg[100:240, 0:150]
-                        cv2.drawContours(croppedImg_right, contours_right, 0, (0, 0, 255), 2)
-                        cv2.drawContours(croppedImg_left, contours_left, 0, (0, 255, 0), 2)
-                        numpy_horizontal = np.hstack((croppedImg_left, croppedImg_right))
+                        cv2.drawContours(croppedImg_right,
+                                         contours_right, 0, (0, 0, 255), 2)
+                        cv2.drawContours(
+                            croppedImg_left, contours_left, 0, (0, 255, 0), 2)
+                        numpy_horizontal = np.hstack(
+                            (croppedImg_left, croppedImg_right))
             else:
                 numpy_horizontal = None
             # San a horizontal line based on the centre point
@@ -339,7 +330,7 @@ def main():
                 line_scan_length,
                 line_length_from_center)
             print(returnString)
-            
+
             if MOVE:
                 if mod == -1 and bearing <= 5:
                     print("Derped out on intersection setting bearing to 45 degrees")
@@ -361,4 +352,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
