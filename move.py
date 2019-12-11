@@ -1,34 +1,19 @@
+
 import easygopigo3 as easy
-import time
+from simple_pid import PID
 
 
-def move(bearing, cent_x, cent_y, line_scan_length, line_from_cent, direction):
-    gpg = easy.EasyGoPiGo3()
-    direction = "eksde"
-    # Really stupid simple way of doing some basic error corrections
-    if line_from_cent >= 180 and bearing <= 0 and direction == "r":
-        gpg.turn_degrees(20)
-        return
-    elif line_from_cent <= 180 and bearing >= 10 and direction == "l":
-        print("lEFt")
-        gpg.turn_degrees(-20)
-        return
-
-    if (abs(bearing) <= 10):
-        gpg.turn_degrees(bearing/2, False)
-        gpg.drive_cm(8)
-
-    else:
-        if (abs(bearing) >= 60):
-            gpg.turn_degrees(bearing / 3)
-        else:
-            gpg.turn_degrees(bearing / 4)
-
-        gpg.drive_cm(5)
-
-
-def intersection():
-    gpg = easy.EasyGoPiGo3()
-    gpg.turn_degrees(30)
-    gpg.drive_cm(8)
-    gpg.turn_degrees(-15)
+def move(bearing, leftMotorSpeed, rightMotorSpeed, pid):
+    gpg = easy.Easygopigo3()
+    motorSpeed = 100
+    output = pid(bearing)
+    # calculate motor speedss
+    leftMotorSpeed = int(motorSpeed + output)
+    rightMotorSpeed = int(motorSpeed - output)
+    if leftMotorSpeed == 0:
+        leftMotorSpeed = 1
+    if rightMotorSpeed == 0:
+        rightMotorSpeed = 1
+    gpg.set_motor_dps(gpg.MOTOR_LEFT, dps=leftMotorSpeed)
+    gpg.set_motor_dps(gpg.MOTOR_RIGHT, dps=rightMotorSpeed)
+    return leftMotorSpeed, rightMotorSpeed, pid

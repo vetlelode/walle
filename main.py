@@ -7,6 +7,8 @@ import sys
 import math
 import serial
 import move
+from simple_pid import PID
+
 
 # The grey image is used for most of the calculations and isn't displayed
 WINDOW_GRAY_IMAGE = 'gray image'
@@ -29,6 +31,7 @@ SCAN_RADIUS_REG = 85
 # The number of itterations we scan to allow us to look ahead and give us more time
 # to make better choices
 NUMBER_OF_CIRCLES = 1
+pid = PID(1, 0.1, 0.05, setpoint=0)
 
 
 def scanLine(image, display_image, point, radius):
@@ -336,12 +339,7 @@ def main():
                     print("Derped out on intersection setting bearing to 45 degrees")
                     bearing = 45
 
-                move.move(bearing,
-                          center_x_distance,
-                          center_y_distance,
-                          line_scan_length,
-                          line_length_from_center,
-                          direction)
+                rightSpeed, leftSpeed, pid = move.move(bearing)
             # Wait for ESC to end program
             c = cv2.waitKey(7) % 0x100
             if c == 27:
