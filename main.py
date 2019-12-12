@@ -31,7 +31,6 @@ SCAN_RADIUS_REG = 85
 # The number of itterations we scan to allow us to look ahead and give us more time
 # to make better choices
 NUMBER_OF_CIRCLES = 1
-pid = PID(1, 0.1, 0.05, setpoint=0)
 
 
 def scanLine(image, display_image, point, radius):
@@ -190,6 +189,9 @@ def lineLength(point1, point2):
 
 
 def main():
+    pid = PID(1, 0.1, 0.05, setpoint=0)
+    rightSpeed = 0
+    leftSpeed = 0
     direction = "r"
     track = "simple"
     if len(sys.argv) >= 2 and str(sys.argv[1]) == "left":
@@ -339,11 +341,13 @@ def main():
                     print("Derped out on intersection setting bearing to 45 degrees")
                     bearing = 45
 
-                rightSpeed, leftSpeed, pid = move.move(bearing)
+                rightSpeed, leftSpeed, pid = move.move(
+                    bearing, rightSpeed, leftSpeed, pid)
             # Wait for ESC to end program
             c = cv2.waitKey(7) % 0x100
             if c == 27:
                 break
+    move.stop()
     cv2.destroyAllWindows()
     return
 
